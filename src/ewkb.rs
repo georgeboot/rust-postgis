@@ -1885,3 +1885,21 @@ fn test_iterators() {
     let line = self::LineStringT::<Point> {srid: Some(4326), points: vec![p(10.0, -20.0), p(0., -0.5)]};
     assert_eq!(line.points().last(), Some(&Point { x: 0., y: -0.5, srid: None }));
 }
+
+#[test]
+#[cfg_attr(rustfmt, rustfmt_skip)]
+fn test_srid_on_multipolygons() {
+    let p = |x, y| Point { x: x, y: y, srid: Some(4326) };
+    // SELECT 'SRID=4326;MULTIPOLYGON (((0 0, 2 0, 2 2, 0 2, 0 0)), ((10 10, -2 10, -2 -2, 10 -2, 10 10)))'::geometry
+    let line = LineStringT::<Point> {srid: Some(4326), points: vec![p(0., 0.), p(2., 0.), p(2., 2.), p(0., 2.), p(0., 0.)]};
+    let poly1 = PolygonT::<Point> {srid: Some(4326), rings: vec![line]};
+    let line = LineStringT::<Point> {srid: Some(4326), points: vec![p(10., 10.), p(-2., 10.), p(-2., -2.), p(10., -2.), p(10., 10.)]};
+    let poly2 = PolygonT::<Point> {srid: Some(4326), rings: vec![line]};
+    let multipoly = MultiPolygonT::<Point> {srid: Some(4326), polygons: vec![poly1, poly2]};
+    let hex = multipoly.as_ewkb().to_hex_ewkb();
+    let ewkb = hex_to_vec(&hex);
+    let geom = MultiPolygon::read_ewkb(&mut ewkb.as_slice()).unwrap();
+
+    assert_eq!(geom.srid, Some(4326));
+    assert_eq!(geom.polygons[0].srid, Some(4326));
+}
