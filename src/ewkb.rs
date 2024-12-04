@@ -571,7 +571,9 @@ macro_rules! impl_read_for_geometry_container_type {
                 let mut $itemname: Vec<$itemtype<P>> = vec![];
                 let size = read_u32(raw, is_be)? as usize;
                 for _ in 0..size {
-                    $itemname.push($itemtype::read_ewkb(raw)?);
+                    let _byte_order = raw.read_i8()?;
+                    let type_id = read_u32(raw, is_be)?;
+                    $itemname.push($itemtype::read_ewkb_body(raw, is_be, type_id, srid)?);
                 }
                 Ok($geotype::<P> {
                     $itemname: $itemname,
